@@ -5,7 +5,10 @@ module Reflex.Dom.Contrib.Audio
        ) where
 
 import Reflex.Dom
+import Control.Monad
 import Control.Monad.Trans
+import Control.Concurrent
+import Data.Functor (($>))
 
 import GHCJS.Types
 import Data.String (IsString(..))
@@ -20,25 +23,26 @@ foreign import javascript unsafe "new Audio($1)"
     createAudio :: JSString -> IO HTMLMediaElement
 
 foreign import javascript unsafe "$1.play()"
-    playAudio :: HTMLMediaElement -> IO ()
+    playMedia :: HTMLMediaElement -> IO ()
 
 foreign import javascript unsafe "$1.pause()"
-    pauseAudio :: HTMLMediaElement -> IO ()
+    pauseMedia :: HTMLMediaElement -> IO ()
 
 foreign import javascript unsafe "$1.currentTime = $2"
-    seekAudio :: HTMLMediaElement -> Double -> IO ()
+    seekMedia :: HTMLMediaElement -> Double -> IO ()
 
 foreign import javascript unsafe "$1.currentTime"
-    audioPos :: HTMLMediaElement -> IO Double
+    getMediaPos :: HTMLMediaElement -> IO Double
 
--- audio :: MonadWidget t m => String -> Dynamic t AudioCommand -> m (Dynamic t Double)
-audio :: MonadWidget t m => String -> Dynamic t AudioCommand -> m ()
-audio path cmd = do
+audio :: MonadWidget t m => String -> Event t () -> Dynamic t AudioCommand -> m (Event t Double)
+audio path sampler cmd = do
     player <- liftIO $ createAudio (fromString path)
     let process cmd = case cmd of
-            Play -> liftIO $ playAudio player
-            Pause -> liftIO $ pauseAudio player
-            Seek timestamp -> liftIO $ seekAudio player timestamp
+            Play -> liftIO $ playMedia player
+            Pause -> liftIO $ pauseMedia player
+            Seek timestamp -> liftIO $ seekMedia player timestamp
     schedulePostBuild $ do
         process =<< sample (current cmd)
     addVoidAction $ fmap process (updated cmd)
+    performEvent $ sampler $> do
+        liftIO $ getMediaPos player
