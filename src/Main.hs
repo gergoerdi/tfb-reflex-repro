@@ -57,6 +57,10 @@ dynSVGxformG xforms body = do
   where
     toAttrs xforms = Map.fromList [("transform", unwords xforms)]
 
+moveX, moveY :: (MonadWidget t m, Reflex t) => Double -> m a -> m a
+moveX = dynMoveX . constDyn
+moveY = dynMoveY . constDyn
+
 dynMoveX :: (MonadWidget t m, Reflex t) => Dynamic t Double -> m a -> m a
 dynMoveX dx body = do
     xforms <- mapDyn ((:[]) . toXform) dx
@@ -120,21 +124,29 @@ viewSide side ColorScheme{..} ts = do
     target = scale 1.1 $ outlined (secondary side) $ square size
 
     marks = void $ do
-        ts' <- mapDyn (Map.fromList . zip [(0 :: Int)..] . filter (< horizon)) ts
-        listWithKey ts' (const toMark)
+        -- ts' <- mapDyn (Map.fromList . zip [(0 :: Int)..] . filter (< horizon)) ts
+        -- listWithKey ts' (const toMark)
+        dyn =<< mapDyn (mapM toMark . filter (< horizon)) ts
 
-    toMark :: Dynamic t TimeStamp -> m ()
+    toMark :: TimeStamp -> m ()
     toMark t = do
-        let xform body = do
-                dx <- mapDyn (\t -> sign * t * 50) t
-                s <- mapDyn (\t -> (horizon - t) / horizon) t
-                dy <- mapDyn (\t -> sin (t * 0.8) * 50) t
-                dynMoveY dy . dynMoveX dx . dynScale s s $ body
-        xform $ do
+        moveY dy . moveX dx . scale s $ do
             filled (primary side) shape
             outlined fore shape
+
+        -- let xform body = do
+        --         dx <- mapDyn (\t -> sign * t * 50) t
+        --         s <- mapDyn (\t -> (horizon - t) / horizon) t
+        --         dy <- mapDyn (\t -> sin (t * 0.8) * 50) t
+        --         dynMoveY dy . dynMoveX dx . dynScale s s $ body
+        -- xform $ do
+        --     filled (primary side) shape
+        --     outlined fore shape
       where
         shape = square size
+        dx = sign * t * 50
+        s = (horizon - t) / horizon
+        dy = sin (t * 0.8) * 50
 
 horizon :: TimeStamp
 horizon = 5
