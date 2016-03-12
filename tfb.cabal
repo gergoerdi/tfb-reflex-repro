@@ -17,6 +17,7 @@ executable tfb
   hs-source-dirs:      src
   main-is:             Main.hs
   other-modules:       Reflex.Dom.Contrib.Audio
+                       Reflex.Dom.Contrib.Widgets.Shapes
   ghc-options:         -Wall
   build-depends:       base
                      , ghcjs-base
