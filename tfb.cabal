@@ -18,6 +18,9 @@ executable tfb
   main-is:             Main.hs
   other-modules:       Reflex.Dom.Contrib.Audio
                        Reflex.Dom.Contrib.Widgets.Shapes
+                       TFB.Types
+                       TFB.Colors
+                       TFB.Songs
   ghc-options:         -Wall
   build-depends:       base
                      , ghcjs-base
