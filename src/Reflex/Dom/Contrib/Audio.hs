@@ -1,14 +1,13 @@
 {-# LANGUAGE JavaScriptFFI, OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts #-}
 module Reflex.Dom.Contrib.Audio
        ( AudioCommand(..)
        , audio
        ) where
 
 import Reflex.Dom
-import Control.Monad
 import Control.Monad.Trans
-import Control.Concurrent
-import Data.Functor (($>))
+import Data.Time.Clock as Time
 
 import GHCJS.Types
 import Data.String (IsString(..))
@@ -22,8 +21,12 @@ data AudioCommand = Play
 foreign import javascript unsafe "new Audio($1)"
     createAudio :: JSString -> IO HTMLMediaElement
 
-audio :: MonadWidget t m => String -> Event t () -> Dynamic t AudioCommand -> m (Event t Double)
-audio path sampler cmd = do
+hold_ :: (MonadHold t m, Reflex t) => Event t a -> m (Behavior t ())
+hold_ = hold () . (() <$)
+
+audio :: (MonadWidget t m, MonadIO (PullM t))
+      => String -> Dynamic t AudioCommand -> m (Behavior t Double)
+audio path cmd = do
     player <- liftIO $ createAudio (fromString path)
     let process cmd = case cmd of
             Play -> Media.play player
@@ -32,4 +35,9 @@ audio path sampler cmd = do
     schedulePostBuild $ do
         process =<< sample (current cmd)
     addVoidAction $ fmap process (updated cmd)
-    performEvent $ sampler $> Media.getCurrentTime player
+
+    now <- liftIO Time.getCurrentTime
+    tick <- hold_ =<< tickLossy (1/1200) now
+    return $ pull $ do
+        _ <- sample tick
+        Media.getCurrentTime player

@@ -16,26 +16,26 @@ main :: IO ()
 main = mainWidget $ do
     now <- liftIO getCurrentTime
     tick <- tickLossy (1/60) now
-    -- time <- mapDyn fst =<< foldDyn (const $ uncurry keepTime) (0, True) tick
-    -- cx <- mapDyn (* 5) time
-    -- el "div" $ fullSVG $ do
-    --     svgAttr "rect" (Map.fromList [("fill", "lime"),("width", "100%"),("height", "100%")]) $ return ()
-    --     let toAttrs cx = Map.fromList [ ("cx", show cx)
-    --                                   , ("cy", "50")
-    --                                   , ("r", "40")
-    --                                   , ("stroke", "green")
-    --                                   , ("width", "4")
-    --                                   , ("fill", "yellow")
-    --                                   ]
-    --     attrs <- mapDyn toAttrs cx
-    --     svgDynAttr "circle" attrs $ return ()
+    time <- mapDyn fst =<< foldDyn (const $ uncurry keepTime) (0, True) tick
+    cx <- mapDyn (* 5) time
+    el "div" $ fullSVG $ do
+        svgAttr "rect" (Map.fromList [("fill", "lime"),("width", "100%"),("height", "100%")]) $ return ()
+        let toAttrs cx = Map.fromList [ ("cx", show cx)
+                                      , ("cy", "50")
+                                      , ("r", "40")
+                                      , ("stroke", "green")
+                                      , ("width", "4")
+                                      , ("fill", "yellow")
+                                      ]
+        attrs <- mapDyn toAttrs cx
+        svgDynAttr "circle" attrs $ return ()
 
     timestamp <- el "div" $ do
         play <- fmap (const Play) <$> button "Play"
         pause <- fmap (const Pause) <$> button "Pause"
         rewind <- fmap (const $ Seek 0) <$> button "Rewind"
         cmd <- holdDyn Pause $ leftmost [play, pause, rewind]
-        audio path (tick $> ()) cmd
+        tag <$> audio path cmd <*> pure tick
     el "div" $ do
         display =<< holdDyn 0 timestamp
     return ()
